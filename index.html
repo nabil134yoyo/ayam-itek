@@ -1,160 +1,104 @@
 <!DOCTYPE html>
-<html lang="ms">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CPO Extraction Simulator | Agro-Tech Malaysia</title>
+    <title>Oil Palm Growth Derivative Simulator</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root {
-            --primary: #2c3e50;
-            --accent: #e67e22;
-            --success: #27ae60;
-            --bg: #f4f7f6;
-        }
-        body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--primary); }
-        .container { max-width: 1000px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); overflow: hidden; }
-        .header { background: var(--primary); color: white; padding: 20px; text-align: center; }
-        .content { padding: 25px; }
-        .control-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; background: #f9f9f9; padding: 20px; border-radius: 8px; margin-bottom: 25px; }
-        .math-section { background: #fff3e0; border-left: 5px solid var(--accent); padding: 15px; margin-bottom: 20px; font-family: 'Courier New', monospace; }
-        .chart-box { position: relative; height: 400px; margin-bottom: 20px; }
-        .result-overlay { background: var(--primary); color: white; padding: 20px; border-radius: 8px; display: none; animation: fadeIn 0.3s; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        input[type="range"] { width: 100%; accent-color: var(--accent); }
-        .source-tag { font-size: 0.75rem; color: #888; text-align: right; margin-top: 10px; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; background: #f4f7f6; color: #333; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { color: #2c5e50; border-bottom: 2px solid #2c5e50; padding-bottom: 10px; }
+        .math-box { background: #eef7f2; padding: 15px; border-left: 5px solid #2c5e50; margin: 20px 0; font-family: 'Courier New', Courier, monospace; }
+        #info-panel { margin-top: 20px; padding: 15px; border: 1px dashed #2c5e50; border-radius: 8px; min-height: 80px; background: #fffdf0; }
+        .data-source { font-size: 0.85em; color: #666; margin-top: 20px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="header">
-        <h1>Simulator Kinetik Pengestrakan CPO</h1>
-        <p>Aplikasi Kalkulus Terbitan dM/dt dalam Industri Sawit</p>
+    <h1>Oil Palm Height Growth Analysis</h1>
+    <p>As a future agro-industry practitioner, you must manage the "replanting gap"—the period when older palms (20-25+ years) show declining growth rates and productivity (Li, 2024).</p>
+    
+    <div class="math-box">
+        <strong>Height Function:</strong> f(x) = 15 / (1 + e<sup>-0.2(x-10)</sup>)<br>
+        <strong>Growth Rate (Derivative):</strong> f'(x) = [3 * e<sup>-0.2(x-10)</sup>] / (1 + e<sup>-0.2(x-10)</sup>)<sup>2</sup>
     </div>
 
-    <div class="content">
-        <div class="math-section">
-            <strong>Fungsi Hasil (f):</strong> M(t) = M<sub>max</sub> (1 - e<sup>-kt</sup>)<br>
-            <strong>Terbitan Kadar (f'):</strong> dM/dt = k · M<sub>max</sub> · e<sup>-kt</sup>
-        </div>
+    <canvas id="growthChart" width="800" height="400"></canvas>
 
-        <div class="control-panel">
-            <div>
-                <label>Suhu Sterilisasi: <span id="tempVal">90</span>°C</label>
-                <input type="range" id="tempSlider" min="60" max="140" value="90">
-            </div>
-            <div>
-                <label>Tekanan Mekanikal: <span id="pressVal">2.5</span> MPa</label>
-                <input type="range" id="pressSlider" min="1.0" max="5.0" step="0.1" value="2.5">
-            </div>
-        </div>
+    <div id="info-panel">
+        <strong>Instruction:</strong> Click any point on the graph to calculate the instantaneous growth rate (m/year) at that age.
+    </div>
 
-        <div class="chart-box">
-            <canvas id="oilChart"></canvas>
-        </div>
-
-        <div id="analysisResult" class="result-overlay">
-            <h3 style="margin-top:0; color: var(--accent);">Analisis Titik Masa <span id="resTime">0</span> minit</h3>
-            <p id="resMath"></p>
-            <p id="resLayman" style="font-weight: 500; font-style: italic;"></p>
-        </div>
-
-        <p class="source-tag">Data diadaptasi daripada: <em>MPOB Engineering Division & Journal of Oil Palm Research (JOPR)</em></p>
+    <div class="data-source">
+        <strong>References:</strong><br>
+        1. Beese et al. (2022). <em>Using repeat airborne LiDAR to map the growth of individual oil palms in Malaysian Borneo</em>. International Journal of Applied Earth Observation and Geoinformation.<br>
+        2. Li, C. (2024). <em>Integrating Multi-Temporal Landsat and Sentinel Data for Enhanced Oil Palm Plantation Mapping and Age Estimation in Malaysia</em>. MDPI Remote Sensing.
     </div>
 </div>
 
 <script>
-    let chart;
-    const ctx = document.getElementById('oilChart').getContext('2d');
+    const labels = Array.from({length: 31}, (_, i) => i);
     
-    // Elements
-    const tempSlider = document.getElementById('tempSlider');
-    const pressSlider = document.getElementById('pressSlider');
-    const tempVal = document.getElementById('tempVal');
-    const pressVal = document.getElementById('pressVal');
+    // f(x) = L / (1 + exp(-k(x-x0)))
+    const f = (x) => 15 / (1 + Math.exp(-0.2 * (x - 10)));
+    
+    // f'(x) = (L * k * exp(-k(x-x0))) / (1 + exp(-k(x-x0)))^2
+    const df = (x) => {
+        const expTerm = Math.exp(-0.2 * (x - 10));
+        return (15 * 0.2 * expTerm) / Math.pow(1 + expTerm, 2);
+    };
 
-    function calculateData() {
-        const T = parseInt(tempSlider.value);
-        const P = parseFloat(pressSlider.value);
-        
-        // Model realistik: k meningkat dengan suhu & tekanan
-        const k = 0.001 * (T * 0.5) * (P * 1.2); 
-        const M_max = 22 + (P * 0.8); // Kapasiti maks minyak terkumpul
+    const dataPoints = labels.map(x => f(x));
 
-        const labels = [];
-        const data = [];
-        for (let t = 0; t <= 60; t += 2) {
-            labels.push(t);
-            let yield = M_max * (1 - Math.exp(-k * t));
-            data.push(yield.toFixed(2));
-        }
-        return { labels, data, k, M_max };
-    }
+    const ctx = document.getElementById('growthChart').getContext('2d');
+    const growthChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Palm Height (meters)',
+                data: dataPoints,
+                borderColor: '#2c5e50',
+                backgroundColor: 'rgba(44, 94, 80, 0.1)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 4,
+                pointHoverRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                tooltip: { enabled: false }
+            },
+            scales: {
+                x: { title: { display: true, text: 'Age of Palm (Years)' } },
+                y: { title: { display: true, text: 'Height (m)' }, min: 0, max: 16 }
+            },
+            onClick: (e) => {
+                const points = growthChart.getElementsAtEventForMode(e, 'nearest', { intersect: true }, true);
+                if (points.length) {
+                    const index = points[0].index;
+                    const age = labels[index];
+                    const height = dataPoints[index].toFixed(2);
+                    const rate = df(age).toFixed(3);
 
-    function updateChart() {
-        const { labels, data, k, M_max } = calculateData();
-        tempVal.innerText = tempSlider.value;
-        pressVal.innerText = pressSlider.value;
+                    let layman = "";
+                    if (age < 8) layman = "The palm is in its juvenile 'explosive' growth phase.";
+                    else if (age >= 8 && age <= 15) layman = "The palm is reaching peak vertical growth velocity.";
+                    else layman = "Growth is plateauing; resources are shifting to fruit production and trunk density.";
 
-        if (chart) {
-            chart.data.labels = labels;
-            chart.data.datasets[0].data = data;
-            chart.update('none');
-        } else {
-            chart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Hasil Minyak Terkumpul (%)',
-                        data: data,
-                        borderColor: '#e67e22',
-                        backgroundColor: 'rgba(230, 126, 34, 0.2)',
-                        fill: true,
-                        tension: 0.4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    onClick: (e) => {
-                        const points = chart.getElementsAtEventForMode(e, 'nearest', { intersect: true }, true);
-                        if (points.length) {
-                            const idx = points[0].index;
-                            const t = chart.data.labels[idx];
-                            const currentM = chart.data.datasets[0].data[idx];
-                            
-                            // Hitung Terbitan f'(t)
-                            const rate = k * M_max * Math.exp(-k * t);
-                            showAnalysis(t, currentM, rate);
-                        }
-                    },
-                    scales: {
-                        y: { title: { display: true, text: 'Minyak Terkstrak (%)' }, max: 30 }
-                    }
+                    document.getElementById('info-panel').innerHTML = `
+                        <strong>Age:</strong> ${age} years | <strong>Height:</strong> ${height} m<br>
+                        <strong>Calculated Rate f'(${age}):</strong> ${rate} meters per year<br>
+                        <em>${layman}</em>
+                    `;
                 }
-            });
+            }
         }
-    }
-
-    function showAnalysis(t, m, r) {
-        const div = document.getElementById('analysisResult');
-        div.style.display = 'block';
-        document.getElementById('resTime').innerText = t;
-        document.getElementById('resMath').innerHTML = `Hasil f(t): ${m}% | <strong>Kadar Terbitan f'(t): ${r.toFixed(3)} %/min</strong>`;
-        
-        let layman = "";
-        if (r > 0.5) layman = "Status: PRESTASI TINGGI. Mesin sangat efisien pada minit ini!";
-        else if (r > 0.1) layman = "Status: STABIL. Kadar menurun, minyak mula berkurangan dalam gentian sawit.";
-        else layman = "Status: TIDAK EKONOMIK. Kadar terlalu rendah. Sebaiknya hentikan pengestrakan untuk jimat kos stim.";
-        
-        document.getElementById('resLayman').innerText = layman;
-    }
-
-    [tempSlider, pressSlider].forEach(s => s.addEventListener('input', updateChart));
-    updateChart();
+    });
 </script>
-
 </body>
 </html>
