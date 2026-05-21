@@ -3,102 +3,125 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Oil Palm Growth Derivative Simulator</title>
+    <title>Agro-Tech Derivative Lab: Oil Palm Growth</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; background: #f4f7f6; color: #333; }
-        .container { max-width: 900px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        h1 { color: #2c5e50; border-bottom: 2px solid #2c5e50; padding-bottom: 10px; }
-        .math-box { background: #eef7f2; padding: 15px; border-left: 5px solid #2c5e50; margin: 20px 0; font-family: 'Courier New', Courier, monospace; }
-        #info-panel { margin-top: 20px; padding: 15px; border: 1px dashed #2c5e50; border-radius: 8px; min-height: 80px; background: #fffdf0; }
-        .data-source { font-size: 0.85em; color: #666; margin-top: 20px; }
+        :root { --primary: #2d5a27; --secondary: #f4f7f2; --accent: #d4a017; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--secondary); color: #333; margin: 0; padding: 20px; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        header { text-align: center; border-bottom: 2px solid var(--primary); margin-bottom: 20px; padding-bottom: 10px; }
+        h1 { color: var(--primary); margin: 0; font-size: 1.5rem; }
+        .formula-box { background: #eef2ed; padding: 15px; border-radius: 8px; font-family: 'Courier New', Courier, monospace; margin: 20px 0; border-left: 5px solid var(--primary); }
+        .chart-container { position: relative; height: 400px; width: 100%; margin-top: 20px; }
+        #info-panel { margin-top: 20px; padding: 15px; border: 1px dashed var(--primary); border-radius: 8px; min-height: 80px; transition: all 0.3s ease; }
+        .highlight { color: var(--primary); font-weight: bold; }
+        .source { font-size: 0.8rem; color: #666; font-style: italic; margin-top: 10px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Oil Palm Height Growth Analysis</h1>
-    <p>As a future agro-industry practitioner, you must manage the "replanting gap"—the period when older palms (20-25+ years) show declining growth rates and productivity (Li, 2024).</p>
-    
-    <div class="math-box">
-        <strong>Height Function:</strong> f(x) = 15 / (1 + e<sup>-0.2(x-10)</sup>)<br>
-        <strong>Growth Rate (Derivative):</strong> f'(x) = [3 * e<sup>-0.2(x-10)</sup>] / (1 + e<sup>-0.2(x-10)</sup>)<sup>2</sup>
+    <header>
+        <h1>SFP Agro-Tech: Growth Rate Analysis</h1>
+        <p>Using Derivatives to Model Malaysian Tenera Oil Palm Biomass</p>
+    </header>
+
+    <section>
+        <h3>Bioscience Problem: Yield Forecasting</h3>
+        <p>In Agro-product technology, we must predict raw material supply. For Oil Palm (<i>Elaeis guineensis</i>), we use the Logistic Growth Model to determine the <b>Instantaneous Growth Rate</b>. The derivative $f'(x)$ indicates the efficiency of the palm in converting nutrients into biomass at any specific year.</p>
+    </section>
+
+    <div class="formula-box">
+        <b>Biomass Function:</b> f(x) = L / (1 + e^-k(x-x0)) <br>
+        <b>Derivative (Rate):</b> f'(x) = k * f(x) * (1 - f(x)/L) <br>
+        <small>Where L=600kg (Max), k=0.4 (Growth Factor), x0=8 (Midpoint Year)</small>
     </div>
 
-    <canvas id="growthChart" width="800" height="400"></canvas>
+    <div class="chart-container">
+        <canvas id="growthChart"></canvas>
+    </div>
 
     <div id="info-panel">
-        <strong>Instruction:</strong> Click any point on the graph to calculate the instantaneous growth rate (m/year) at that age.
+        <p><i>Click any point on the graph to calculate the <b>Rate of Change</b> for that year.</i></p>
     </div>
 
-    <div class="data-source">
-        <strong>References:</strong><br>
-        1. Beese et al. (2022). <em>Using repeat airborne LiDAR to map the growth of individual oil palms in Malaysian Borneo</em>. International Journal of Applied Earth Observation and Geoinformation.<br>
-        2. Li, C. (2024). <em>Integrating Multi-Temporal Landsat and Sentinel Data for Enhanced Oil Palm Plantation Mapping and Age Estimation in Malaysia</em>. MDPI Remote Sensing.
-    </div>
+    <p class="source">Data Reference: Based on "Development and validation of an oil palm model" (Sawit.jl, Heliyon 2024) and Malaysian Palm Oil Board (MPOB) growth standards.</p>
 </div>
 
 <script>
-    const labels = Array.from({length: 31}, (_, i) => i);
-    
-    // f(x) = L / (1 + exp(-k(x-x0)))
-    const f = (x) => 15 / (1 + Math.exp(-0.2 * (x - 10)));
-    
-    // f'(x) = (L * k * exp(-k(x-x0))) / (1 + exp(-k(x-x0)))^2
-    const df = (x) => {
-        const expTerm = Math.exp(-0.2 * (x - 10));
-        return (15 * 0.2 * expTerm) / Math.pow(1 + expTerm, 2);
-    };
+    // Constants for the Logistic Growth of a Malaysian Oil Palm
+    const L = 600;  // Carrying capacity (max kg per palm)
+    const k = 0.4;  // Growth rate constant
+    const x0 = 8;   // Point of inflection (peak growth at year 8)
 
-    const dataPoints = labels.map(x => f(x));
+    // Logistic Function f(x)
+    function f(x) {
+        return L / (1 + Math.exp(-k * (x - x0)));
+    }
+
+    // Derivative f'(x)
+    function df(x) {
+        const val = f(x);
+        return k * val * (1 - val / L);
+    }
+
+    // Generate Data
+    const years = Array.from({length: 21}, (_, i) => i);
+    const biomassData = years.map(y => f(y));
 
     const ctx = document.getElementById('growthChart').getContext('2d');
     const growthChart = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: labels,
+            labels: years,
             datasets: [{
-                label: 'Palm Height (meters)',
-                data: dataPoints,
-                borderColor: '#2c5e50',
-                backgroundColor: 'rgba(44, 94, 80, 0.1)',
+                label: 'Total Biomass (kg)',
+                data: biomassData,
+                borderColor: '#2d5a27',
+                backgroundColor: 'rgba(45, 90, 39, 0.1)',
+                borderWidth: 3,
                 fill: true,
                 tension: 0.4,
-                pointRadius: 4,
+                pointRadius: 5,
                 pointHoverRadius: 8
             }]
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false,
             plugins: {
                 tooltip: { enabled: false }
             },
             scales: {
-                x: { title: { display: true, text: 'Age of Palm (Years)' } },
-                y: { title: { display: true, text: 'Height (m)' }, min: 0, max: 16 }
+                y: { 
+                    title: { display: true, text: 'Weight (kg)' },
+                    beginAtZero: true 
+                },
+                x: { 
+                    title: { display: true, text: 'Years Post-Planting' } 
+                }
             },
-            onClick: (e) => {
-                const points = growthChart.getElementsAtEventForMode(e, 'nearest', { intersect: true }, true);
-                if (points.length) {
-                    const index = points[0].index;
-                    const age = labels[index];
-                    const height = dataPoints[index].toFixed(2);
-                    const rate = df(age).toFixed(3);
+            onClick: (e, activeEls) => {
+                if (activeEls.length > 0) {
+                    const idx = activeEls[0].index;
+                    const x = years[idx];
+                    const weight = f(x).toFixed(2);
+                    const rate = df(x).toFixed(2);
 
-                    let layman = "";
-                    if (age < 8) layman = "The palm is in its juvenile 'explosive' growth phase.";
-                    else if (age >= 8 && age <= 15) layman = "The palm is reaching peak vertical growth velocity.";
-                    else layman = "Growth is plateauing; resources are shifting to fruit production and trunk density.";
-
-                    document.getElementById('info-panel').innerHTML = `
-                        <strong>Age:</strong> ${age} years | <strong>Height:</strong> ${height} m<br>
-                        <strong>Calculated Rate f'(${age}):</strong> ${rate} meters per year<br>
-                        <em>${layman}</em>
+                    const panel = document.getElementById('info-panel');
+                    panel.style.backgroundColor = '#fdfae6';
+                    panel.innerHTML = `
+                        <strong>Year ${x} Analysis:</strong><br>
+                        <span class="highlight">Current Weight:</span> ${weight} kg | 
+                        <span class="highlight">Growth Rate [f'(${x})]:</span> ${rate} kg/year<br>
+                        <strong>Explaination:</strong> At year ${x}, your oil palm is gaining weight at a speed of <b>${rate} kg per year</b>. 
+                        ${rate > 50 ? "This is the <b>Peak Production Phase</b>—maximize fertilizer here!" : "Growth is slowing down as the palm reaches maturity."}
                     `;
                 }
             }
         }
     });
 </script>
+
 </body>
 </html>
