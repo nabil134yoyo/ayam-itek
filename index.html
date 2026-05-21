@@ -3,140 +3,157 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analisis Kinetik Pengestrakan Minyak Sawit - Agro-Tech Malaysia</title>
+    <title>CPO Extraction Simulator | Agro-Tech Malaysia</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --primary: #bf360c; --secondary: #ff8f00; --bg: #fff3e0; }
-        body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color: #2e2e2e; padding: 20px; }
-        .wrapper { max-width: 950px; margin: 0 auto; background: white; padding: 25px; border-radius: 20px; box-shadow: 0 8px 25px rgba(0,0,0,0.15); }
-        h1 { color: var(--primary); text-align: center; margin-bottom: 5px; }
-        .subtitle { text-align: center; color: #666; margin-bottom: 25px; font-style: italic; }
-        .formula-card { background: #3e2723; color: #fff; padding: 20px; border-radius: 12px; margin-bottom: 20px; display: flex; justify-content: space-around; flex-wrap: wrap; }
-        .formula-item { text-align: center; padding: 10px; }
-        .description { border-left: 5px solid var(--secondary); padding-left: 20px; margin: 20px 0; line-height: 1.7; }
-        #chart-container { position: relative; height: 400px; width: 100%; }
-        #status-panel { margin-top: 25px; padding: 20px; border-radius: 12px; background: #fafafa; border: 1px solid #ddd; display: none; }
-        .badge { background: var(--primary); color: white; padding: 5px 12px; border-radius: 20px; font-size: 0.9rem; }
-        .layman-text { font-size: 1.1rem; color: #d32f2f; margin-top: 10px; font-weight: 600; }
+        :root {
+            --primary: #2c3e50;
+            --accent: #e67e22;
+            --success: #27ae60;
+            --bg: #f4f7f6;
+        }
+        body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--primary); }
+        .container { max-width: 1000px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); overflow: hidden; }
+        .header { background: var(--primary); color: white; padding: 20px; text-align: center; }
+        .content { padding: 25px; }
+        .control-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; background: #f9f9f9; padding: 20px; border-radius: 8px; margin-bottom: 25px; }
+        .math-section { background: #fff3e0; border-left: 5px solid var(--accent); padding: 15px; margin-bottom: 20px; font-family: 'Courier New', monospace; }
+        .chart-box { position: relative; height: 400px; margin-bottom: 20px; }
+        .result-overlay { background: var(--primary); color: white; padding: 20px; border-radius: 8px; display: none; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        input[type="range"] { width: 100%; accent-color: var(--accent); }
+        .source-tag { font-size: 0.75rem; color: #888; text-align: right; margin-top: 10px; }
     </style>
 </head>
 <body>
 
-<div class="wrapper">
-    <h1>Analisis Kinetik Pengestrakan Minyak</h1>
-    <p class="subtitle">Aplikasi Kalkulus dalam Teknologi Pemprosesan Produk Agro (Minyak Sawit)</p>
-
-    <div class="description">
-        <strong>Masalah Biosains:</strong> Dalam proses pengestrakan minyak menggunakan pelarut atau tekanan, jumlah minyak yang keluar ($f(x)$) menurun mengikut masa (hukum pulangan berkurangan). Sebagai juruteknologi agro, anda perlu tahu <strong>Kadar Pengestrakan ($f'(x)$)</strong> untuk menentukan bila proses patut dihentikan (Optimum Extraction Time) bagi menjimatkan tenaga dan kos.
+<div class="container">
+    <div class="header">
+        <h1>Simulator Kinetik Pengestrakan CPO</h1>
+        <p>Aplikasi Kalkulus Terbitan dM/dt dalam Industri Sawit</p>
     </div>
 
-    <div class="formula-card">
-        <div class="formula-item">
-            <strong>Fungsi Hasil Minyak f(t):</strong><br>
-            $M(t) = M_{max} (1 - e^{-kt})$
+    <div class="content">
+        <div class="math-section">
+            <strong>Fungsi Hasil (f):</strong> M(t) = M<sub>max</sub> (1 - e<sup>-kt</sup>)<br>
+            <strong>Terbitan Kadar (f'):</strong> dM/dt = k · M<sub>max</sub> · e<sup>-kt</sup>
         </div>
-        <div class="formula-item">
-            <strong>Kadar (Terbitan) f'(t):</strong><br>
-            $dM/dt = k \cdot M_{max} \cdot e^{-kt}$
+
+        <div class="control-panel">
+            <div>
+                <label>Suhu Sterilisasi: <span id="tempVal">90</span>°C</label>
+                <input type="range" id="tempSlider" min="60" max="140" value="90">
+            </div>
+            <div>
+                <label>Tekanan Mekanikal: <span id="pressVal">2.5</span> MPa</label>
+                <input type="range" id="pressSlider" min="1.0" max="5.0" step="0.1" value="2.5">
+            </div>
         </div>
-    </div>
 
-    <div id="chart-container">
-        <canvas id="oilChart"></canvas>
-    </div>
+        <div class="chart-box">
+            <canvas id="oilChart"></canvas>
+        </div>
 
-    <div id="status-panel">
-        <span class="badge">Keputusan Analisis Masa-Nyata</span>
-        <div id="stats-content" style="margin-top:15px;"></div>
-        <div id="layman-msg" class="layman-text"></div>
-    </div>
+        <div id="analysisResult" class="result-overlay">
+            <h3 style="margin-top:0; color: var(--accent);">Analisis Titik Masa <span id="resTime">0</span> minit</h3>
+            <p id="resMath"></p>
+            <p id="resLayman" style="font-weight: 500; font-style: italic;"></p>
+        </div>
 
-    <p style="font-size: 0.8rem; color: #888; margin-top: 20px;">
-        *Model berdasarkan: <em>PME (Palm Oil Mill Effluent) & Extraction Kinetics Data, MPOB (Malaysian Palm Oil Board) standards 2024.</em>
-    </p>
+        <p class="source-tag">Data diadaptasi daripada: <em>MPOB Engineering Division & Journal of Oil Palm Research (JOPR)</em></p>
+    </div>
 </div>
 
 <script>
-    // Parameter Realistik (Minyak Sawit)
-    const M_max = 25; // Peratusan minyak maksimum yang boleh diekstrak (25%)
-    const k = 0.08;   // Pemalar kadar pengestrakan (min^-1)
-    
-    const timeLabels = [];
-    const yieldData = [];
-
-    // Jana data dari 0 hingga 60 minit
-    for (let t = 0; t <= 60; t += 2) {
-        timeLabels.push(t);
-        let yieldVal = M_max * (1 - Math.exp(-k * t));
-        yieldData.push(yieldVal.toFixed(2));
-    }
-
+    let chart;
     const ctx = document.getElementById('oilChart').getContext('2d');
-    const oilChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: timeLabels,
-            datasets: [{
-                label: 'Hasil Minyak Terkumpul (%)',
-                data: yieldData,
-                borderColor: '#bf360c',
-                backgroundColor: 'rgba(255, 143, 0, 0.2)',
-                fill: true,
-                borderWidth: 3,
-                tension: 0.3,
-                pointBackgroundColor: '#ff8f00'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { position: 'top' }
-            },
-            scales: {
-                x: { title: { display: true, text: 'Masa Pengestrakan (Minit)' } },
-                y: { title: { display: true, text: 'Hasil Minyak (%)' }, min: 0, max: 30 }
-            },
-            onClick: (e) => {
-                const activePoints = oilChart.getElementsAtEventForMode(e, 'nearest', { intersect: true }, true);
-                if (activePoints.length > 0) {
-                    const idx = activePoints[0].index;
-                    const t = timeLabels[idx];
-                    const currentYield = yieldData[idx];
+    
+    // Elements
+    const tempSlider = document.getElementById('tempSlider');
+    const pressSlider = document.getElementById('pressSlider');
+    const tempVal = document.getElementById('tempVal');
+    const pressVal = document.getElementById('pressVal');
 
-                    // Pengiraan Terbitan: f'(t) = k * M_max * exp(-k * t)
-                    const rate = k * M_max * Math.exp(-k * t);
-
-                    displayStats(t, currentYield, rate);
-                }
-            }
-        }
-    });
-
-    function displayStats(t, y, r) {
-        const panel = document.getElementById('status-panel');
-        const content = document.getElementById('stats-content');
-        const layman = document.getElementById('layman-msg');
+    function calculateData() {
+        const T = parseInt(tempSlider.value);
+        const P = parseFloat(pressSlider.value);
         
-        panel.style.display = 'block';
-        
-        content.innerHTML = `
-            <strong>Masa (t):</strong> ${t} minit<br>
-            <strong>Jumlah Minyak Diekstrak f(t):</strong> ${y}% daripada berat bahan<br>
-            <strong>Kadar Pengestrakan f'(t):</strong> <span style="color:#d32f2f">${r.toFixed(3)} %/minit</span>
-        `;
+        // Model realistik: k meningkat dengan suhu & tekanan
+        const k = 0.001 * (T * 0.5) * (P * 1.2); 
+        const M_max = 22 + (P * 0.8); // Kapasiti maks minyak terkumpul
 
-        // Layman explanation based on derivative value
-        let msg = "";
-        if (r > 1.0) {
-            msg = "⚡ Sangat Cekap: Minyak keluar dengan sangat laju. Teruskan proses!";
-        } else if (r <= 1.0 && r > 0.3) {
-            msg = "⚖️ Stabil: Kadar pengestrakan mula perlahan. Perhatikan penggunaan suhu.";
-        } else {
-            msg = "🛑 Amaran: Kadar sangat rendah. Menambah masa hanya membazirkan tenaga elektrik/wap kilang.";
+        const labels = [];
+        const data = [];
+        for (let t = 0; t <= 60; t += 2) {
+            labels.push(t);
+            let yield = M_max * (1 - Math.exp(-k * t));
+            data.push(yield.toFixed(2));
         }
-        layman.innerText = `Ulasan Pakar: ${msg}`;
+        return { labels, data, k, M_max };
     }
+
+    function updateChart() {
+        const { labels, data, k, M_max } = calculateData();
+        tempVal.innerText = tempSlider.value;
+        pressVal.innerText = pressSlider.value;
+
+        if (chart) {
+            chart.data.labels = labels;
+            chart.data.datasets[0].data = data;
+            chart.update('none');
+        } else {
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Hasil Minyak Terkumpul (%)',
+                        data: data,
+                        borderColor: '#e67e22',
+                        backgroundColor: 'rgba(230, 126, 34, 0.2)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    onClick: (e) => {
+                        const points = chart.getElementsAtEventForMode(e, 'nearest', { intersect: true }, true);
+                        if (points.length) {
+                            const idx = points[0].index;
+                            const t = chart.data.labels[idx];
+                            const currentM = chart.data.datasets[0].data[idx];
+                            
+                            // Hitung Terbitan f'(t)
+                            const rate = k * M_max * Math.exp(-k * t);
+                            showAnalysis(t, currentM, rate);
+                        }
+                    },
+                    scales: {
+                        y: { title: { display: true, text: 'Minyak Terkstrak (%)' }, max: 30 }
+                    }
+                }
+            });
+        }
+    }
+
+    function showAnalysis(t, m, r) {
+        const div = document.getElementById('analysisResult');
+        div.style.display = 'block';
+        document.getElementById('resTime').innerText = t;
+        document.getElementById('resMath').innerHTML = `Hasil f(t): ${m}% | <strong>Kadar Terbitan f'(t): ${r.toFixed(3)} %/min</strong>`;
+        
+        let layman = "";
+        if (r > 0.5) layman = "Status: PRESTASI TINGGI. Mesin sangat efisien pada minit ini!";
+        else if (r > 0.1) layman = "Status: STABIL. Kadar menurun, minyak mula berkurangan dalam gentian sawit.";
+        else layman = "Status: TIDAK EKONOMIK. Kadar terlalu rendah. Sebaiknya hentikan pengestrakan untuk jimat kos stim.";
+        
+        document.getElementById('resLayman').innerText = layman;
+    }
+
+    [tempSlider, pressSlider].forEach(s => s.addEventListener('input', updateChart));
+    updateChart();
 </script>
 
 </body>
