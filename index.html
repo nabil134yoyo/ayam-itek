@@ -1,130 +1,141 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ms">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tilapia Growth Analytics - SFP Agro-Tech Malaysia</title>
+    <title>Analisis Kinetik Pengestrakan Minyak Sawit - Agro-Tech Malaysia</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --primary: #2e7d32; --accent: #ffd600; --bg: #f1f8e9; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: #333; padding: 20px; }
-        .container { max-width: 900px; margin: 0 auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-        h1 { color: var(--primary); text-align: center; border-bottom: 2px solid var(--primary); padding-bottom: 10px; }
-        .math-box { background: #e8f5e9; padding: 15px; border-radius: 8px; margin: 20px 0; font-family: 'Courier New', Courier, monospace; }
-        .info-box { border-left: 5px solid var(--primary); padding-left: 15px; margin: 15px 0; line-height: 1.6; }
-        #analysis { background: var(--primary); color: white; padding: 20px; border-radius: 10px; margin-top: 20px; display: none; }
-        #growthChart { cursor: crosshair; }
-        .source { font-size: 0.8rem; color: #666; font-style: italic; margin-top: 10px; }
+        :root { --primary: #bf360c; --secondary: #ff8f00; --bg: #fff3e0; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color: #2e2e2e; padding: 20px; }
+        .wrapper { max-width: 950px; margin: 0 auto; background: white; padding: 25px; border-radius: 20px; box-shadow: 0 8px 25px rgba(0,0,0,0.15); }
+        h1 { color: var(--primary); text-align: center; margin-bottom: 5px; }
+        .subtitle { text-align: center; color: #666; margin-bottom: 25px; font-style: italic; }
+        .formula-card { background: #3e2723; color: #fff; padding: 20px; border-radius: 12px; margin-bottom: 20px; display: flex; justify-content: space-around; flex-wrap: wrap; }
+        .formula-item { text-align: center; padding: 10px; }
+        .description { border-left: 5px solid var(--secondary); padding-left: 20px; margin: 20px 0; line-height: 1.7; }
+        #chart-container { position: relative; height: 400px; width: 100%; }
+        #status-panel { margin-top: 25px; padding: 20px; border-radius: 12px; background: #fafafa; border: 1px solid #ddd; display: none; }
+        .badge { background: var(--primary); color: white; padding: 5px 12px; border-radius: 20px; font-size: 0.9rem; }
+        .layman-text { font-size: 1.1rem; color: #d32f2f; margin-top: 10px; font-weight: 600; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h1>Tilapia Growth & Derivatives Analysis</h1>
-    
-    <div class="info-box">
-        <p><strong>Bioscience Context:</strong> For Malaysian GIFT Tilapia, growth follows a Gompertz curve. As an Agro-Tech technologist, you use the <strong>First Derivative f'(x)</strong> to identify the biological "Inflection Point"—the exact day when growth is fastest. After this point, metabolic efficiency drops, and feed conversion ratios (FCR) worsen.</p>
+<div class="wrapper">
+    <h1>Analisis Kinetik Pengestrakan Minyak</h1>
+    <p class="subtitle">Aplikasi Kalkulus dalam Teknologi Pemprosesan Produk Agro (Minyak Sawit)</p>
+
+    <div class="description">
+        <strong>Masalah Biosains:</strong> Dalam proses pengestrakan minyak menggunakan pelarut atau tekanan, jumlah minyak yang keluar ($f(x)$) menurun mengikut masa (hukum pulangan berkurangan). Sebagai juruteknologi agro, anda perlu tahu <strong>Kadar Pengestrakan ($f'(x)$)</strong> untuk menentukan bila proses patut dihentikan (Optimum Extraction Time) bagi menjimatkan tenaga dan kos.
     </div>
 
-    <div class="math-box">
-        <strong>Growth Function f(t):</strong> W(t) = K * exp(-exp(-k * (t - t0))) <br>
-        <strong>Rate of Change f'(t):</strong> dW/dt = k * W(t) * ln(K / W(t))
+    <div class="formula-card">
+        <div class="formula-item">
+            <strong>Fungsi Hasil Minyak f(t):</strong><br>
+            $M(t) = M_{max} (1 - e^{-kt})$
+        </div>
+        <div class="formula-item">
+            <strong>Kadar (Terbitan) f'(t):</strong><br>
+            $dM/dt = k \cdot M_{max} \cdot e^{-kt}$
+        </div>
     </div>
 
-    <canvas id="growthChart" width="800" height="400"></canvas>
-
-    <div id="analysis">
-        <h3 id="point-title">Point Analysis</h3>
-        <p id="calc-results"></p>
-        <p id="layman-explanation" style="font-weight: bold; color: var(--accent);"></p>
+    <div id="chart-container">
+        <canvas id="oilChart"></canvas>
     </div>
 
-    <div class="source">
-        Data Reference: <em>GIFT Program Malaysia (WorldFish) & PMC Growth Modeling (Yu et al., 2020)</em>
+    <div id="status-panel">
+        <span class="badge">Keputusan Analisis Masa-Nyata</span>
+        <div id="stats-content" style="margin-top:15px;"></div>
+        <div id="layman-msg" class="layman-text"></div>
     </div>
+
+    <p style="font-size: 0.8rem; color: #888; margin-top: 20px;">
+        *Model berdasarkan: <em>PME (Palm Oil Mill Effluent) & Extraction Kinetics Data, MPOB (Malaysian Palm Oil Board) standards 2024.</em>
+    </p>
 </div>
 
 <script>
-    // Constants for Malaysian Tilapia (Realistic Parameters)
-    const K = 1200;   // Carrying capacity in grams (max harvest weight)
-    const k = 0.022;  // Growth coefficient
-    const t0 = 85;    // Time of maximum growth (days)
+    // Parameter Realistik (Minyak Sawit)
+    const M_max = 25; // Peratusan minyak maksimum yang boleh diekstrak (25%)
+    const k = 0.08;   // Pemalar kadar pengestrakan (min^-1)
+    
+    const timeLabels = [];
+    const yieldData = [];
 
-    // Generate Data Points (Day 0 to 250)
-    const labels = [];
-    const weightData = [];
-    for (let t = 0; t <= 250; t += 5) {
-        labels.push(t);
-        // f(t) = Gompertz Calculation
-        let weight = K * Math.exp(-Math.exp(-k * (t - t0)));
-        weightData.push(weight.toFixed(2));
+    // Jana data dari 0 hingga 60 minit
+    for (let t = 0; t <= 60; t += 2) {
+        timeLabels.push(t);
+        let yieldVal = M_max * (1 - Math.exp(-k * t));
+        yieldData.push(yieldVal.toFixed(2));
     }
 
-    const ctx = document.getElementById('growthChart').getContext('2d');
-    const growthChart = new Chart(ctx, {
+    const ctx = document.getElementById('oilChart').getContext('2d');
+    const oilChart = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: labels,
+            labels: timeLabels,
             datasets: [{
-                label: 'Weight (g)',
-                data: weightData,
-                borderColor: '#2e7d32',
-                backgroundColor: 'rgba(46, 125, 50, 0.1)',
+                label: 'Hasil Minyak Terkumpul (%)',
+                data: yieldData,
+                borderColor: '#bf360c',
+                backgroundColor: 'rgba(255, 143, 0, 0.2)',
                 fill: true,
-                tension: 0.4,
-                pointRadius: 3,
-                pointHoverRadius: 8
+                borderWidth: 3,
+                tension: 0.3,
+                pointBackgroundColor: '#ff8f00'
             }]
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false,
             plugins: {
-                legend: { display: false },
-                tooltip: { enabled: false }
+                legend: { position: 'top' }
             },
             scales: {
-                x: { title: { display: true, text: 'Days Post-Stocking' } },
-                y: { title: { display: true, text: 'Weight (Grams)' } }
+                x: { title: { display: true, text: 'Masa Pengestrakan (Minit)' } },
+                y: { title: { display: true, text: 'Hasil Minyak (%)' }, min: 0, max: 30 }
             },
             onClick: (e) => {
-                const points = growthChart.getElementsAtEventForMode(e, 'nearest', { intersect: true }, true);
-                if (points.length) {
-                    const idx = points[0].index;
-                    const t = labels[idx];
-                    const weight = weightData[idx];
-                    
-                    // f'(t) calculation: dW/dt = k * W * ln(K/W)
-                    const rate = k * weight * Math.log(K / weight);
-                    
-                    updateAnalysis(t, weight, rate);
+                const activePoints = oilChart.getElementsAtEventForMode(e, 'nearest', { intersect: true }, true);
+                if (activePoints.length > 0) {
+                    const idx = activePoints[0].index;
+                    const t = timeLabels[idx];
+                    const currentYield = yieldData[idx];
+
+                    // Pengiraan Terbitan: f'(t) = k * M_max * exp(-k * t)
+                    const rate = k * M_max * Math.exp(-k * t);
+
+                    displayStats(t, currentYield, rate);
                 }
             }
         }
     });
 
-    function updateAnalysis(day, weight, rate) {
-        const analysisDiv = document.getElementById('analysis');
-        const results = document.getElementById('calc-results');
-        const layman = document.getElementById('layman-explanation');
+    function displayStats(t, y, r) {
+        const panel = document.getElementById('status-panel');
+        const content = document.getElementById('stats-content');
+        const layman = document.getElementById('layman-msg');
         
-        analysisDiv.style.display = 'block';
-        document.getElementById('point-title').innerText = `Analysis at Day ${day}`;
+        panel.style.display = 'block';
         
-        results.innerHTML = `
-            <strong>Current Weight f(x):</strong> ${weight}g <br>
-            <strong>Growth Rate f'(x):</strong> ${rate.toFixed(2)} grams/day
+        content.innerHTML = `
+            <strong>Masa (t):</strong> ${t} minit<br>
+            <strong>Jumlah Minyak Diekstrak f(t):</strong> ${y}% daripada berat bahan<br>
+            <strong>Kadar Pengestrakan f'(t):</strong> <span style="color:#d32f2f">${r.toFixed(3)} %/minit</span>
         `;
 
-        // Layman Explanation Logic based on the Derivative
-        let explanation = "";
-        if (day < 70) {
-            explanation = "Growth is accelerating! The fish are in the 'Lag Phase' and building bone/muscle structure.";
-        } else if (day >= 70 && day <= 100) {
-            explanation = "PEAK PERFORMANCE: This is the inflection point. The fish are gaining weight at their maximum biological speed.";
+        // Layman explanation based on derivative value
+        let msg = "";
+        if (r > 1.0) {
+            msg = "⚡ Sangat Cekap: Minyak keluar dengan sangat laju. Teruskan proses!";
+        } else if (r <= 1.0 && r > 0.3) {
+            msg = "⚖️ Stabil: Kadar pengestrakan mula perlahan. Perhatikan penggunaan suhu.";
         } else {
-            explanation = "Growth rate is slowing down. The fish are nearing maturity; feed costs per gram of gain are now increasing.";
+            msg = "🛑 Amaran: Kadar sangat rendah. Menambah masa hanya membazirkan tenaga elektrik/wap kilang.";
         }
-        layman.innerText = `Agro-Tech Insight: ${explanation}`;
+        layman.innerText = `Ulasan Pakar: ${msg}`;
     }
 </script>
 
